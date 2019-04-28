@@ -1,9 +1,9 @@
 /************************************************************************
  * app.h
  *
- * Created: 15.11.2017 14:07:54
- * Revised: 10.4.2018
- * Author: uidm2956
+ * Created: 28.4.2019 10:26:54
+ * Revised: 
+ * Author: LeXa
  * BOARD:
  *
  * ABOUT:
@@ -25,13 +25,13 @@
 /*----------------------------------------------------------------------*/
 /* Every task function is named void task<name of task>();              */
 /* For example:                                                         */
-/* void taskStartUp();                                                  */
+/* void taskStartUpApp                                                  */
 /*                                                                      */
 /* File names with source code are named task_<name of task>.cpp        */
 /* For example:                                                         */
-/* task_startup.cpp                                                     */
+/* task_startup_app.cpp                                                 */
 /*                                                                      */
-/* Every task source code must include tasks.h                          */
+/* Every task source code should include app.h                          */
 /************************************************************************/
 
 

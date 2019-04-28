@@ -1,9 +1,9 @@
 /*************************************************************************
  * appversion.h
  *
- * Created: 15.11.2017 14:01:24
- * Revised: 3.1.2018
- * Author: uidm2956
+ * Created: 28.4.2019 10:27:24
+ * Revised: 
+ * Author: LeXa
  * BOARD:
  *
  * ABOUT:
@@ -18,8 +18,8 @@
 #ifndef APPVERSION_H_
 #define APPVERSION_H_
 
-#define APPNAME             Core
+#define APPNAME             Generic
 #define APPVERSION          0.1.0
-#define APPGIT              git-id.conti.de/uidm2956/Test_Box_V3_Core
+#define APPGIT              https://github.com/lexaplexa/samc21.generic
 
 #endif /* APPVERSION_H_ */

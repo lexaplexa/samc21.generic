@@ -1,9 +1,9 @@
 /*************************************************************************
  * coreversion.h
  *
- * Created: 15.11.2017 14:03:01
- * Revised: 4.4.2019
- * Author: uidm2956
+ * Created: 28.4.2019 10:18:01
+ * Revised: 
+ * Author: LeXa
  * BOARD:
  *
  * ABOUT:
@@ -18,7 +18,7 @@
 #ifndef COREVERSION_H_
 #define COREVERSION_H_
 
-#define COREVERSION         2.6.0
-#define COREGIT             git-id.conti.de/cds-sf-gen/sw.tool.test_box
+#define COREVERSION         0.1.0
+#define COREGIT             https://github.com/lexaplexa/samc21.generic
 
 #endif /* COREVERSION_H_ */

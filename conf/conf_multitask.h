@@ -1,9 +1,9 @@
 /*************************************************************************
  * conf_multitask.h
  *
- * Created: 5.9.2017 15:33:17
- * Revised: 4.4.2019
- * Author: uidm2956
+ * Created: 28.4.2019 10:22:17
+ * Revised: 
+ * Author: LeXa
  * BOARD:
  *
  * ABOUT:
