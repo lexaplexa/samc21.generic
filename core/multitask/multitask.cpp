@@ -2,7 +2,7 @@
 * multitask.cpp
 *
 * Created: 31.3.2016 15:15:18
-* Revised: 4.4.2019
+* Revised: 28.4.2019
 * Author: uidm2956
 * BOARD:
 * ABOUT:
@@ -85,8 +85,13 @@ namespace Core::Multitask
         {
             /* Run event before going to deep sleep */
             if (peventBeforeDeepSleep != nullptr) {peventBeforeDeepSleep();}
-        
-            REG_PM_SLEEPCFG = PM_SLEEPCFG_SLEEPMODE_STANDBY;
+            
+            #ifdef _SAMC21_ 
+                REG_PM_SLEEPCFG = PM_SLEEPCFG_SLEEPMODE_STANDBY;
+            #endif
+            #ifdef _SAMD21_
+                SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+            #endif
             __WFI();
         
             /* Run event after wake up */
@@ -96,7 +101,13 @@ namespace Core::Multitask
          * Wait for next interrupt (tick or some other interrupt) */
         else
         {
-            REG_PM_SLEEPCFG = PM_SLEEPCFG_SLEEPMODE_IDLE0;
+            #ifdef _SAMC21_ 
+                REG_PM_SLEEPCFG = PM_SLEEPCFG_SLEEPMODE_IDLE0;
+            #endif
+            #ifdef _SAMD21_
+                SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
+                REG_PM_SLEEP = PM_SLEEP_IDLE(0);
+            #endif
             __WFI();
         }
     }
