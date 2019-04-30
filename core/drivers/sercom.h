@@ -2,7 +2,7 @@
  * sercom.h
  *
  * Created: 23.9.2015 17:16:21
- * Revised: 4.4.2019
+ * Revised: 30.4.2019
  * Author: uidm2956
  * BOARD: 
  * ABOUT:
@@ -242,9 +242,24 @@ namespace Core
         /************************************************************************/
         /* I2C                                                                  */
         /************************************************************************/
+        enum I2C_CMD_enum {
+            I2C_CMD_NoAction,
+            I2C_CMD_RepeatedStart,
+            I2C_CMD_Acknowledge,
+            I2C_CMD_Stop,
+        };
+
+        enum I2C_BUSSTATE_enum {
+            I2C_BUSSTATE_Unknown,
+            I2C_BUSSTATE_Idle,
+            I2C_BUSSTATE_Owner,
+            I2C_BUSSTATE_Busy,
+        };
+
         class I2C: public SERCOM
         {
             private:
+                uint8_t m_unAddress = 0;
             
             public:
                 /**
@@ -260,8 +275,8 @@ namespace Core
                 /**
                  * \brief   Initialize I2C master
                  * 
-                 * \param unPadIn           - PAD input value
-                 * \param unPadOut          - PAD output value
+                 * \param unPadIn           - not relevant for I2C
+                 * \param unPadOut          - not relevant for I2C
                  * \param unFgen            - clock generator frequency
                  * \param unBaud            - baud rate
                  * 
@@ -269,9 +284,52 @@ namespace Core
                  */
                 void Init(uint8_t unPadIn, uint8_t unPadOut, uint32_t unFgen, uint32_t unBaud);
                 
-                void Send(uint8_t unByte) {};
+                /**
+                 * \brief   Send byte to slave
+                 * 
+                 * \param unByte            - byte to send
+                 * 
+                 * \return void
+                 */
+                void Send(uint8_t unByte);
                 
-                uint8_t Read() {};
+                /**
+                 * \brief   Read byte from slave
+                 * 
+                 * 
+                 * \return uint8_t          - byte to read
+                 */
+                uint8_t Read();
+
+                /**
+                 * \brief   Set slave address
+                 * 
+                 * \param unAddress         - slave address
+                 * 
+                 * \return void
+                 */
+                void SetAddress(uint8_t unAddress) {m_unAddress = unAddress;}
+
+                /**
+                 * \brief   Send data to slave
+                 * 
+                 * \param aData             - pointer to data
+                 * \param unLength          - data length
+                 * 
+                 * \return void
+                 */
+                void Send(uint8_t* aData, uint16_t unLength);
+
+                /**
+                 * \brief   Read data from slave
+                 * 
+                 * \param aData             - pointer to data
+                 * \param unLength          - data length
+                 * 
+                 * \return void
+                 */
+                void Read(uint8_t* aData, uint16_t unLength);
+
         };
         
         /************************************************************************/
