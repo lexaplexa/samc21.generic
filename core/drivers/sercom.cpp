@@ -2,7 +2,7 @@
  * sercom.cpp
  *
  * Created: 23.9.2015 17:18:53
- * Revised: 4.4.2019
+ * Revised: 30.4.2019
  * Author: uidm2956
  * BOARD: 
  * ABOUT:
@@ -139,5 +139,93 @@ namespace Core::Drivers
     void SPI::Send(uint8_t* pData, uint16_t unLength)
     {
         for (uint16_t i=0; i<unLength; i++) {Send(*pData++);}
+    }
+
+    /************************************************************************/
+    /* I2C                                                                  */
+    /************************************************************************/
+    void I2C::Init(uint8_t unPadIn, uint8_t unPadOut, uint32_t unFgen, uint32_t unBaud)
+    {
+        m_pSercom->I2CM.CTRLA.bit.SWRST = true;
+        while (m_pSercom->I2CM.SYNCBUSY.bit.SWRST);
+
+        m_pSercom->I2CM.CTRLA.bit.MODE = 0x05;              /* I2C master operation */
+        m_pSercom->I2CM.CTRLA.bit.INACTOUT = 0x03;
+        m_pSercom->I2CM.BAUD.reg = unFgen/2/(unBaud+1);
+
+        m_pSercom->I2CM.CTRLA.bit.ENABLE = true;
+        while (m_pSercom->I2CM.SYNCBUSY.bit.ENABLE);
+        m_pSercom->I2CM.STATUS.bit.BUSSTATE = I2C_BUSSTATE_Idle;
+    }
+
+    void I2C::Send(uint8_t unByte)
+    {
+        /* Send Address */
+        m_pSercom->I2CM.ADDR.bit.ADDR = m_unAddress;
+        while(!m_pSercom->I2CM.INTFLAG.bit.MB);
+        m_pSercom->I2CM.INTFLAG.bit.MB = 1;                 /* Clear interrupt flag */
+        if (m_pSercom->I2CM.STATUS.bit.RXNACK) {return;}    /* No acknowledge from slave */
+
+        /* Send byte */
+        m_pSercom->I2CM.DATA.reg = unByte;
+        while(!m_pSercom->I2CM.INTFLAG.bit.MB);
+        m_pSercom->I2CM.INTFLAG.bit.MB = 1;
+        
+        /* Stop communication */
+        m_pSercom->I2CM.CTRLB.bit.CMD = I2C_CMD_Stop;
+    }
+
+    
+    uint8_t I2C::Read()
+    {
+        /* Send Address */
+        m_pSercom->I2CM.ADDR.bit.ADDR = m_unAddress|0x01;
+        while(!m_pSercom->I2CM.INTFLAG.bit.SB);
+        m_pSercom->I2CM.INTFLAG.bit.SB = 1;                 /* Clear interrupt flag */
+
+        /* Stop communication */
+        m_pSercom->I2CM.CTRLB.bit.CMD = I2C_CMD_Stop;
+        return m_pSercom->I2CM.DATA.reg;
+    }
+
+    void I2C::Send(uint8_t* aData, uint16_t unLength)
+    {
+        /* Send Address */
+        m_pSercom->I2CM.ADDR.bit.ADDR = m_unAddress;
+        while(!m_pSercom->I2CM.INTFLAG.bit.MB);
+        m_pSercom->I2CM.INTFLAG.bit.MB = 1;                     /* Clear interrupt flag */
+        if (m_pSercom->I2CM.STATUS.bit.RXNACK) {return;}        /* No acknowledge from slave */
+
+        /* Send Data */
+        for (uint16_t i=0; i<unLength; i++)
+        {
+            m_pSercom->I2CM.DATA.reg = aData[i];
+            while(!m_pSercom->I2CM.INTFLAG.bit.MB);
+            m_pSercom->I2CM.INTFLAG.bit.MB = 1;                 /* Clear interrupt flag */
+            if (m_pSercom->I2CM.STATUS.bit.RXNACK) {return;}    /* No acknowledge from slave */
+        }
+
+        /* Stop communication */
+        m_pSercom->I2CM.CTRLB.bit.CMD = I2C_CMD_Stop;
+    }
+
+    
+    void I2C::Read(uint8_t* aData, uint16_t unLength)
+    {
+        /* Send Address */
+        m_pSercom->I2CM.ADDR.bit.ADDR = m_unAddress|0x01;
+
+        /* Read data */
+        for (uint16_t i=0; i<unLength; i++)
+        {
+            while(!m_pSercom->I2CM.INTFLAG.bit.SB);
+            m_pSercom->I2CM.INTFLAG.bit.SB = 1;                 /* Clear interrupt flag */
+            if (m_pSercom->I2CM.STATUS.bit.RXNACK) {return;}    /* No acknowledge from slave */
+            else {aData[i] = m_pSercom->I2CM.DATA.reg;}
+            m_pSercom->I2CM.CTRLB.bit.CMD = I2C_CMD_Acknowledge;
+        }
+
+        /* Stop communication */
+        m_pSercom->I2CM.CTRLB.bit.CMD = I2C_CMD_Stop;
     }
 }
