@@ -347,7 +347,7 @@ void Core::Multitask::BootJumpApp()
 int main(void)
 {    
     /* Multitask initialization */
-    Core::Multitask::MTASK::Init(F_CPU, TICKS_PER_SECOND);
+    Core::Multitask::MTASK::Init(CPU_FREQ, TICKS_PER_SECOND);
     Core::Multitask::MTASK::Delay(Core::Multitask::taskStartUpCore,TASK_TOUT_MS(STARTUP_TIMEOUT));
     
     /* Enable all interrupts */

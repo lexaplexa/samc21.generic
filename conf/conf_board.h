@@ -23,14 +23,16 @@
 /************************************************************************/
 /* SYSTEM CLOCK OPTIONS                                                 */
 /************************************************************************/
-#define F_CPU                       CONF_SOURCE_FREQ*CONF_DPLL_MULTIPLICATION
-#define CONF_SOURCE_FREQ            4000000
-#define CONF_DPLL_MULTIPLICATION    12
-#define CONF_DPLL_CLKREF            1       /* DPLL reference clock (0 - XOSC32K, 1 - XOSC, 2 - GCLK) */
+#define CPU_FREQ                    SOURCE_FREQ*MULTIPLICATION_FREQ
+#define SOURCE_FREQ                 1000000
+#define MULTIPLICATION_FREQ         1       /* Used only in DPLL */
+#define DPLL_CLKREF                 1       /* DPLL reference clock (0 - XOSC32K, 1 - XOSC, 2 - GCLK) */
 
 
 /************************************************************************/
-/* MULTIPLEXER OPTIONS                                                  */
+/* PIN OPTIONS                                                          */
+/*----------------------------------------------------------------------*/
+/* All pins configuration (Port, pin position, multiplexer,...)         */
 /************************************************************************/
 
 
