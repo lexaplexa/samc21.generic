@@ -101,14 +101,7 @@ namespace Core::Multitask
          * Wait for next interrupt (tick or some other interrupt) */
         else
         {
-            #ifdef _SAMC21_ 
-                REG_PM_SLEEPCFG = PM_SLEEPCFG_SLEEPMODE_IDLE0;
-            #endif
-            #ifdef _SAMD21_
-                SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
-                REG_PM_SLEEP = PM_SLEEP_IDLE(0);
-            #endif
-            __WFI();
+            Sleep();
         }
     }
     
@@ -262,6 +255,41 @@ namespace Core::Multitask
             case TASK_EVENT_TYPE_BeforeDeepSleep:   peventBeforeDeepSleep = vCallBack; break;
             case TASK_EVENT_TYPE_AfterWakeUp:       peventAfterWakeUp = vCallBack; break;
         }
+    }
+
+    
+    void MTASK::Sleep()
+    {
+        #ifdef _SAMC21_
+            REG_PM_SLEEPCFG = PM_SLEEPCFG_SLEEPMODE_IDLE0;
+        #endif
+        #ifdef _SAMD21_
+            SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
+            REG_PM_SLEEP = PM_SLEEP_IDLE(0);
+        #endif
+        __WFI();
+    }
+
+    void MTASK::Sleep(uint16_t unTimeout)
+    {
+        uint32_t unSysTimeMatch = m_unSysTime + unTimeout;
+        volatile uint32_t* unSysTimeActual = &m_unSysTime;
+
+        /* Wait until system time matches */
+        while(*unSysTimeActual < unSysTimeMatch)
+        {
+            #ifdef _SAMC21_
+                REG_PM_SLEEPCFG = PM_SLEEPCFG_SLEEPMODE_IDLE0;
+            #endif
+            #ifdef _SAMD21_
+                SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
+                REG_PM_SLEEP = PM_SLEEP_IDLE(0);
+            #endif
+            __WFI();
+
+            /* System time overflows */
+            if (*unSysTimeActual == 0) {unSysTimeMatch &= 0x7FFFFFFF;}
+        };
     }
 }
 
