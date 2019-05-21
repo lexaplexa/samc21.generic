@@ -2,7 +2,7 @@
 * multitask.cpp
 *
 * Created: 31.3.2016 15:15:18
-* Revised: 28.4.2019
+* Revised: 21.5.2019
 * Author: uidm2956
 * BOARD:
 * ABOUT:
@@ -19,7 +19,7 @@ namespace Core::Multitask
     uint8_t MTASK::m_unActiveTasks = 0;
     uint8_t MTASK::m_unHighestPrio = 0;
     bool MTASK::m_bDeepSleepEnabled = false;
-    TASK_struct* MTASK::m_pFirstTask = nullptr;
+    TASK_struct* MTASK::m_psLastTask = nullptr;
     TASK_struct* MTASK::m_psCurrentTask = nullptr;
     FuncPtr_t MTASK::peventBeforeDeepSleep = nullptr;
     FuncPtr_t MTASK::peventAfterWakeUp = nullptr;
@@ -39,14 +39,14 @@ namespace Core::Multitask
         if (SysTimeOverflow)
         {
             m_unSysTime = 0;
-            for (TASK_struct* pTask = m_pFirstTask; pTask != nullptr; pTask = pTask->pNextTask)
+            for (TASK_struct* pTask = m_psLastTask; pTask != nullptr; pTask = pTask->psParent)
             {
                 pTask->nTimeMatch &= 0x7FFFFFFF;
             }
         }
     
         /* Increment time match if task suspended */
-        for (TASK_struct* pTask = m_pFirstTask; pTask != nullptr; pTask = pTask->pNextTask)
+        for (TASK_struct* pTask = m_psLastTask; pTask != nullptr; pTask = pTask->psParent)
         {
             if (pTask->bSuspend) {pTask->nTimeMatch++;}
         }
@@ -60,7 +60,7 @@ namespace Core::Multitask
         m_psCurrentTask = nullptr;
     
         /* Find task with highest priority */
-        for (TASK_struct* pTask = m_pFirstTask; pTask != nullptr; pTask = pTask->pNextTask)
+        for (TASK_struct* pTask = m_psLastTask; pTask != nullptr; pTask = pTask->psParent)
         {
             if (pTask->bSuspend == false) {m_unActiveTasks++;}
             if (m_unSysTime >= pTask->nTimeMatch && pTask->unPriority >= m_unHighestPrio)
@@ -115,31 +115,15 @@ namespace Core::Multitask
     
     TASK_struct* MTASK::CreateTask()
     {
-        /* m_pFirstTask is only a pointer and not a task structure */
-        if (m_pFirstTask == nullptr)
-        {
-            TASK_struct* NewTask = new TASK_struct;
-            m_pFirstTask = NewTask;
-            NewTask->pNextTask = nullptr;
-            return NewTask;
-        }
-    
-        for (TASK_struct* pTask = m_pFirstTask; pTask != nullptr; pTask = pTask->pNextTask)
-        {
-            if (pTask->pNextTask == nullptr)
-            {
-                TASK_struct* NewTask = new TASK_struct;
-                pTask->pNextTask = NewTask;
-                NewTask->pNextTask = nullptr;
-                return NewTask;
-            }
-        }
+        TASK_struct* psNewTask = new TASK_struct;
+        psNewTask->psParent = m_psLastTask;
+        m_psLastTask = psNewTask;
     }
     
     
     TASK_struct* MTASK::FindTask(FuncPtr_t pTaskFunc)
     {
-        for (TASK_struct* pTask = m_pFirstTask; pTask != nullptr; pTask = pTask->pNextTask)
+        for (TASK_struct* pTask = m_psLastTask; pTask != nullptr; pTask = pTask->psParent)
         {
             if (pTask->pTaskFunc == pTaskFunc) {return pTask;}
         }
@@ -149,21 +133,17 @@ namespace Core::Multitask
     
     void MTASK::DeleteTask(TASK_struct* pTask)
     {
-        /* m_pFirstTask is only a pointer and not a task structure */
-        if (m_pFirstTask == pTask)
+        if (m_psLastTask == pTask)
         {
-            m_pFirstTask = pTask->pNextTask;
+            m_psLastTask = pTask->psParent;
             delete pTask;
-            return;
         }
-    
-        for (TASK_struct* pTaskTemp = m_pFirstTask; pTaskTemp != nullptr; pTaskTemp = pTaskTemp->pNextTask)
+        for (TASK_struct* pTaskTemp = m_psLastTask; pTaskTemp != nullptr; pTaskTemp = pTaskTemp->psParent)
         {
-            if (pTaskTemp->pNextTask == pTask)
+            if (pTaskTemp->psParent == pTask)
             {
-                pTaskTemp->pNextTask = pTask->pNextTask;
+                pTaskTemp->psParent = pTask->psParent;
                 delete pTask;
-                return;
             }
         }
     }
