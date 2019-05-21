@@ -322,6 +322,25 @@ namespace Core
                  * \return void
                  */
                 static void DisableDeepSleep() {m_bDeepSleepEnabled = false;}
+
+
+                /**
+                 * \brief   Sleep until next interrupt
+                 * 
+                 * 
+                 * \return void
+                 */
+                static void Sleep();
+
+
+                /**
+                 * \brief   Sleep during timeout. During this sleep no other task can be executed
+                 * 
+                 * \param unTimeout     - time out in ticks
+                 * 
+                 * \return void
+                 */
+                static void Sleep(uint16_t unTimeout);
         };
     }
 }
