@@ -2,7 +2,7 @@
 * multitask.cpp
 *
 * Created: 31.3.2016 15:15:18
-* Revised: 21.5.2019
+* Revised: 22.5.2019
 * Author: uidm2956
 * BOARD:
 * ABOUT:
@@ -19,6 +19,7 @@ namespace Core::Multitask
     uint8_t MTASK::m_unActiveTasks = 0;
     uint8_t MTASK::m_unHighestPrio = 0;
     bool MTASK::m_bDeepSleepEnabled = false;
+    bool MTASK::m_bSchedulerRunning = false;
     TASK_struct* MTASK::m_psLastTask = nullptr;
     TASK_struct* MTASK::m_psCurrentTask = nullptr;
     FuncPtr_t MTASK::peventBeforeDeepSleep = nullptr;
@@ -54,54 +55,61 @@ namespace Core::Multitask
     
     inline void MTASK::Schedule()
     {
-        /* Clear to default values */
-        m_unHighestPrio = 0;
-        m_unActiveTasks = 0;
-        m_psCurrentTask = nullptr;
-    
-        /* Find task with highest priority */
-        for (TASK_struct* pTask = m_psLastTask; pTask != nullptr; pTask = pTask->psParent)
+        if (m_bSchedulerRunning) {return;}
+        m_bSchedulerRunning = true;
+
+        /* Main loop */
+        while (1)
         {
-            if (pTask->bSuspend == false) {m_unActiveTasks++;}
-            if (m_unSysTime >= pTask->nTimeMatch && pTask->unPriority >= m_unHighestPrio)
-            {
-                m_psCurrentTask = pTask;
-                m_unHighestPrio = pTask->unPriority;
-            }
-        }
-    
-        /* Run task if available */
-        if (m_psCurrentTask != nullptr)
-        {
-            FuncPtr_t pTaskFunc = m_psCurrentTask->pTaskFunc;
-            if (m_psCurrentTask->bRepeat) {m_psCurrentTask->nTimeMatch = m_unSysTime + m_psCurrentTask->unTimeOut;}
-            else {DeleteTask(m_psCurrentTask);}
-            /* Run task function */
-            pTaskFunc();
-        }
-        /* Controller can be put into deep sleep if no tasks are active.
-         * Multi task counter is not running. There are limited wake-up sources. */
-        else if (m_bDeepSleepEnabled && !m_unActiveTasks)
-        {
-            /* Run event before going to deep sleep */
-            if (peventBeforeDeepSleep != nullptr) {peventBeforeDeepSleep();}
+            /* Clear to default values */
+            m_unHighestPrio = 0;
+            m_unActiveTasks = 0;
+            m_psCurrentTask = nullptr;
             
-            #ifdef _SAMC21_ 
+            /* Find task with highest priority */
+            for (TASK_struct* pTask = m_psLastTask; pTask != nullptr; pTask = pTask->psParent)
+            {
+                if (pTask->bSuspend == false) {m_unActiveTasks++;}
+                if (m_unSysTime >= pTask->nTimeMatch && pTask->unPriority >= m_unHighestPrio)
+                {
+                    m_psCurrentTask = pTask;
+                    m_unHighestPrio = pTask->unPriority;
+                }
+            }
+            
+            /* Run task if available */
+            if (m_psCurrentTask != nullptr)
+            {
+                FuncPtr_t pTaskFunc = m_psCurrentTask->pTaskFunc;
+                if (m_psCurrentTask->bRepeat) {m_psCurrentTask->nTimeMatch = m_unSysTime + m_psCurrentTask->unTimeOut;}
+                else {DeleteTask(m_psCurrentTask);}
+                /* Run task function */
+                pTaskFunc();
+            }
+            /* Controller can be put into deep sleep if no tasks are active.
+            * Multi task counter is not running. There are limited wake-up sources. */
+            else if (m_bDeepSleepEnabled && !m_unActiveTasks)
+            {
+                /* Run event before going to deep sleep */
+                if (peventBeforeDeepSleep != nullptr) {peventBeforeDeepSleep();}
+                
+                #ifdef _SAMC21_
                 REG_PM_SLEEPCFG = PM_SLEEPCFG_SLEEPMODE_STANDBY;
-            #endif
-            #ifdef _SAMD21_
+                #endif
+                #ifdef _SAMD21_
                 SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
-            #endif
-            __WFI();
-        
-            /* Run event after wake up */
-            if (peventAfterWakeUp != nullptr) {peventAfterWakeUp();}
-        }
-        /* If no task is executed, CPU is going to idle mode.
-         * Wait for next interrupt (tick or some other interrupt) */
-        else
-        {
-            Sleep();
+                #endif
+                __WFI();
+                
+                /* Run event after wake up */
+                if (peventAfterWakeUp != nullptr) {peventAfterWakeUp();}
+            }
+            /* If no task is executed, CPU is going to idle mode.
+            * Wait for next interrupt (tick or some other interrupt) */
+            else
+            {
+                Sleep();
+            }
         }
     }
     
@@ -130,6 +138,7 @@ namespace Core::Multitask
         {
             m_psLastTask = pTask->psParent;
             delete pTask;
+            return;
         }
         for (TASK_struct* pTaskTemp = m_psLastTask; pTaskTemp != nullptr; pTaskTemp = pTaskTemp->psParent)
         {
@@ -137,6 +146,7 @@ namespace Core::Multitask
             {
                 pTaskTemp->psParent = pTask->psParent;
                 delete pTask;
+                return;
             }
         }
     }
@@ -365,10 +375,7 @@ int main(void)
     /* Enable micro trace buffer */
     InitTraceBuffer();
 #endif
-    
-    /* MAIN LOOP */
-    while (1)
-    {
-        Core::Multitask::MTASK::Schedule();
-    }
+
+    /* Main Loop */
+    Core::Multitask::MTASK::Schedule();
 }
