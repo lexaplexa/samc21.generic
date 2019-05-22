@@ -2,7 +2,7 @@
  * multitask.h
  *
  * Created: 31.3.2016 15:16:18
- * Revised: 21.5.2019
+ * Revised: 22.5.2019
  * Author: uidm2956
  * BOARD: 
  * ABOUT:
@@ -72,7 +72,7 @@ namespace Core
             uint32_t unPriority:3;          /* Task priority (0 - lowest, 7 - highest) */
             uint32_t bSuspend:1;            /* Task is suspended */
             uint32_t bRepeat:1;             /* Task is repeated */
-            TASK_struct *psParent;         /* Pointer to next task */
+            TASK_struct *psParent;          /* Pointer to parent task */
         };
         
         
@@ -117,8 +117,9 @@ namespace Core
                 static uint8_t m_unActiveTasks;             /* Number of active tasks */
                 static uint8_t m_unHighestPrio;             /* Highest priority in a schedule loop */
                 static bool m_bDeepSleepEnabled;            /* Deep sleep activation */
+                static bool m_bSchedulerRunning;            /* Scheduler is running status */
                 static TASK_struct* m_psLastTask;           /* Pointer to first task */
-                static TASK_struct* m_psCurrentTask;        /* Pointer to current task in a schedule loop */
+                static TASK_struct* m_psCurrentTask;        /* Pointer to current task to run */
                 static FuncPtr_t peventBeforeDeepSleep;     /* Pointer to event before deep sleep */
                 static FuncPtr_t peventAfterWakeUp;         /* Pointer to event after wake up */
                 
