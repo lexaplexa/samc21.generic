@@ -2,7 +2,7 @@
  * multitask.h
  *
  * Created: 31.3.2016 15:16:18
- * Revised: 22.5.2019
+ * Revised: 4.6.2019
  * Author: uidm2956
  * BOARD: 
  * ABOUT:
@@ -25,7 +25,7 @@
     #define TICKS_PER_SECOND            1000
 #endif
 
-#define TASK_TOUT_MS(x)                   (uint16_t)(((uint32_t)x*TICKS_PER_SECOND)/1000)
+#define TASK_TOUT_MS(x)                 (uint16_t)(((uint32_t)x*TICKS_PER_SECOND)/1000)
 
 /************************************************************************/
 /* START UP TIMEOUT                                                     */
@@ -74,8 +74,8 @@ namespace Core
             uint32_t bRepeat:1;             /* Task is repeated */
             TASK_struct *psParent;          /* Pointer to parent task */
         };
-        
-        
+
+
         /************************************************************************/
         /* ENUMS                                                                */
         /************************************************************************/
@@ -84,8 +84,8 @@ namespace Core
             TASK_EVENT_TYPE_AfterWakeUp,
             TASK_EVENT_TYPE_sum             /* Sum of all events. DO NOT DELETE!! */
         };
-    
-    
+
+
         /************************************************************************/
         /* DEFAULT FUNCTION PROTOTYPES                                          */
         /************************************************************************/
@@ -96,7 +96,7 @@ namespace Core
          * \return void
          */
         void taskStartUpCore();
-        
+
         /**
          * \brief   Prototype of function which jumps to application
          *          Use only in boot loader
@@ -105,8 +105,8 @@ namespace Core
          * \return void
          */
         void BootJumpApp();
-        
-        
+
+
         /************************************************************************/
         /* CLASS                                                                */
         /************************************************************************/
@@ -122,8 +122,7 @@ namespace Core
                 static TASK_struct* m_psCurrentTask;        /* Pointer to current task to run */
                 static FuncPtr_t peventBeforeDeepSleep;     /* Pointer to event before deep sleep */
                 static FuncPtr_t peventAfterWakeUp;         /* Pointer to event after wake up */
-                
-                        
+
                 /**
                  * \brief   Create new task
                  * 
@@ -131,8 +130,7 @@ namespace Core
                  * \return TASK_struct*     - pointer to created task 
                  */
                 static TASK_struct* CreateTask();
-                
-                
+
                 /**
                  * \brief   Find task according task function
                  * 
@@ -141,7 +139,7 @@ namespace Core
                  * \return TASK_struct*     - pointer to existing task, if not found then nullptr
                  */
                 static TASK_struct* FindTask(FuncPtr_t pTaskFunc);
-                
+
                 /**
                  * \brief   Delete existing task
                  * 
@@ -149,7 +147,7 @@ namespace Core
                  * \return void
                  */
                 static void DeleteTask(TASK_struct* pTask);
-                
+
             public:
                 /**
                 * \brief   Multi task initialization. After that global interrupt must be enabled.
@@ -160,8 +158,7 @@ namespace Core
                 * \return void
                 */
                 static inline void Init(uint32_t unCpuFreq, uint32_t unTicksPerSecond);
-                
-                
+
                 /**
                 * \brief   Tick has been elapsed. System time is incremented.
                 *          Handle this function in a interrupt routine, which is periodically generated.
@@ -169,8 +166,7 @@ namespace Core
                 * \return void
                 */
                 static inline void TickElapsed();
-                
-                
+
                 /**
                 * \brief   Task Scheduler decides which task will run as next. Must be
                 *          located in main loop.
@@ -178,8 +174,7 @@ namespace Core
                 * \return void
                 */
                 static inline void Schedule();
-                
-                
+
                 /**
                 * \brief   Run immediately task function in next scheduler loop (depends also on priority)
                 *
@@ -188,8 +183,7 @@ namespace Core
                 * \return void
                 */
                 static void Run(FuncPtr_t taskFunc);
-                
-                
+
                 /**
                  * \brief   Run immediately task function in next scheduler loop with priority
                  * 
@@ -199,8 +193,7 @@ namespace Core
                  * \return void
                  */
                 static void Run(FuncPtr_t taskFunc, uint8_t unPriority);
-                
-                        
+
                 /**
                 * \brief   Run task function after time out
                 *
@@ -210,7 +203,7 @@ namespace Core
                 * \return void
                 */
                 static void Delay(FuncPtr_t taskFunc, uint16_t unTimeout);
-                
+
                 /**
                  * \brief   Run task function after time out with priority
                  * 
@@ -221,8 +214,7 @@ namespace Core
                  * \return void
                  */
                 static void Delay(FuncPtr_t taskFunc, uint16_t unTimeout, uint8_t unPriority);
-                
-                
+
                 /**
                 * \brief   Repeat task function after time out
                 *
@@ -232,8 +224,7 @@ namespace Core
                 * \return void
                 */
                 static void Repeat(FuncPtr_t taskFunc, uint16_t unTimeout);
-                
-                
+
                 /**
                  * \brief   Repeat task function after time out with priority
                  * 
@@ -244,8 +235,7 @@ namespace Core
                  * \return void
                  */
                 static void Repeat(FuncPtr_t taskFunc, uint16_t unTimeout, uint8_t unPriority);
-                
-                
+
                 /**
                 * \brief   Stop task function taskFunc
                 *
@@ -254,8 +244,15 @@ namespace Core
                 * \return void
                 */
                 static void Stop(FuncPtr_t taskFunc);
-                
-                
+
+                /**
+                 * \brief   Stop all tasks
+                 * 
+                 * 
+                 * \return void
+                 */
+                static void Stop();
+
                 /**
                 * \brief   Suspend task function taskFunc
                 *
@@ -264,8 +261,15 @@ namespace Core
                 * \return void
                 */
                 static void Suspend(FuncPtr_t taskFunc);
-                
-                
+
+                /**
+                 * \brief   Suspends all tasks
+                 * 
+                 * 
+                 * \return void
+                 */
+                static void Suspend();
+
                 /**
                 * \brief   Resume task function taskFunc
                 *
@@ -274,19 +278,25 @@ namespace Core
                 * \return void
                 */
                 static void Resume(FuncPtr_t taskFunc);
-                
-                
+
                 /**
-                * \brief	Set priority to task function taskFunc
-                *
-                * \param taskFunc      - task function
-                * \param unPriority    - priority (0 -> lowest,..., 7 -> highest)
-                *
-                * \return void
-                */
+                 * \brief   Resume all tasks
+                 * 
+                 * 
+                 * \return void
+                 */
+                static void Resume();
+
+                /**
+                 * \brief   Set priority to task function taskFunc
+                 *
+                 * \param taskFunc      - task function
+                 * \param unPriority    - priority (0 -> lowest,..., 7 -> highest)
+                 *
+                 * \return void
+                 */
                 static void SetPriority(FuncPtr_t taskFunc, uint8_t unPriority);
-                
-                
+
                 /**
                  * \brief   Get system time
                  * 
@@ -294,19 +304,17 @@ namespace Core
                  * \return uint32_t     - system time
                  */
                 static uint32_t unGetSysTime() {return m_unSysTime;}
-                
-                
+
                 /**
                  * \brief   Assign function to a event type
                  * 
                  * \param eventType     - type of event
-                 * \param vCallBack     - event function
+                 * \param eventFunc     - event function
                  * 
                  * \return void
                  */
-                static void SetEvent(TASK_EVENT_TYPE_enum eEventType, FuncPtr_t vCallBack);
-                
-                
+                static void SetEvent(TASK_EVENT_TYPE_enum eEventType, FuncPtr_t eventFunc);
+
                 /**
                  * \brief   Enable deep sleep
                  * 
@@ -314,8 +322,7 @@ namespace Core
                  * \return void
                  */
                 static void EnableDeepSleep() {m_bDeepSleepEnabled = true;}
-                
-                
+
                 /**
                  * \brief   Disable deep sleep
                  * 
@@ -324,7 +331,6 @@ namespace Core
                  */
                 static void DisableDeepSleep() {m_bDeepSleepEnabled = false;}
 
-
                 /**
                  * \brief   Sleep until next interrupt
                  * 
@@ -332,7 +338,6 @@ namespace Core
                  * \return void
                  */
                 static void Sleep();
-
 
                 /**
                  * \brief   Sleep during timeout. During this sleep no other task can be executed
