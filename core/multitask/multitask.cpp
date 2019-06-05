@@ -2,7 +2,7 @@
 * multitask.cpp
 *
 * Created: 31.3.2016 15:15:18
-* Revised: 22.5.2019
+* Revised: 4.6.2019
 * Author: uidm2956
 * BOARD:
 * ABOUT:
@@ -87,7 +87,7 @@ namespace Core::Multitask
                 pTaskFunc();
             }
             /* Controller can be put into deep sleep if no tasks are active.
-            * Multi task counter is not running. There are limited wake-up sources. */
+             * Multi task counter is not running. There are limited wake-up sources. */
             else if (m_bDeepSleepEnabled && !m_unActiveTasks)
             {
                 /* Run event before going to deep sleep */
@@ -105,7 +105,7 @@ namespace Core::Multitask
                 if (peventAfterWakeUp != nullptr) {peventAfterWakeUp();}
             }
             /* If no task is executed, CPU is going to idle mode.
-            * Wait for next interrupt (tick or some other interrupt) */
+             * Wait for next interrupt (tick or some other interrupt) */
             else
             {
                 Sleep();
@@ -235,6 +235,15 @@ namespace Core::Multitask
         TASK_struct* pTask = FindTask(taskFunc);
         if (pTask != nullptr) {DeleteTask(pTask);}
     }
+
+    void MTASK::Stop()
+    {
+        for (TASK_struct* pTask = m_psLastTask; pTask != nullptr; pTask = pTask->psParent)
+        {
+            m_psLastTask = pTask->psParent;
+            delete pTask;
+        }
+    }
     
     
     void MTASK::Suspend(FuncPtr_t taskFunc)
@@ -242,12 +251,30 @@ namespace Core::Multitask
         TASK_struct* pTask = FindTask(taskFunc);
         if (pTask != nullptr) {pTask->bSuspend = true;}
     }
-    
+
+
+    void MTASK::Suspend()
+    {
+        for (TASK_struct* pTask = m_psLastTask; pTask != nullptr; pTask = pTask->psParent)
+        {
+            pTask->bSuspend = true;
+        }
+    }
+
     
     void MTASK::Resume(FuncPtr_t taskFunc)
     {
         TASK_struct* pTask = FindTask(taskFunc);
         if (pTask != nullptr) {pTask->bSuspend = false;}
+    }
+
+
+    void MTASK::Resume()
+    {
+        for (TASK_struct* pTask = m_psLastTask; pTask != nullptr; pTask = pTask->psParent)
+        {
+            pTask->bSuspend = false;
+        }
     }
     
     
@@ -258,12 +285,12 @@ namespace Core::Multitask
     }
     
     
-    void MTASK::SetEvent(TASK_EVENT_TYPE_enum eEventType, FuncPtr_t vCallBack)
+    void MTASK::SetEvent(TASK_EVENT_TYPE_enum eEventType, FuncPtr_t eventFunc)
     {
         switch(eEventType)
         {
-            case TASK_EVENT_TYPE_BeforeDeepSleep:   peventBeforeDeepSleep = vCallBack; break;
-            case TASK_EVENT_TYPE_AfterWakeUp:       peventAfterWakeUp = vCallBack; break;
+            case TASK_EVENT_TYPE_BeforeDeepSleep:   peventBeforeDeepSleep = eventFunc; break;
+            case TASK_EVENT_TYPE_AfterWakeUp:       peventAfterWakeUp = eventFunc; break;
         }
     }
 
@@ -310,7 +337,6 @@ void SysTick_Handler(void)
 {
     Core::Multitask::MTASK::TickElapsed();
 }
-
 
 /************************************************************************/
 /* MICRO TRACE BUFFER                                                   */
