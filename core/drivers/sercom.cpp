@@ -2,7 +2,7 @@
  * sercom.cpp
  *
  * Created: 23.9.2015 17:18:53
- * Revised: 30.4.2019
+ * Revised: 17.6.2019
  * Author: uidm2956
  * BOARD: 
  * ABOUT:
@@ -78,9 +78,7 @@ namespace Core::Drivers
     {
         for (pString; *pString != '\0'; pString++)
         {
-            m_pSercom->USART.DATA.reg = *pString;
-            while (m_pSercom->USART.INTFLAG.bit.TXC);
-            m_pSercom->USART.INTFLAG.bit.TXC = 1;       /* Clear flag */
+            Send(*pString);
         }
     }
 
@@ -88,9 +86,7 @@ namespace Core::Drivers
     {
         for (uint16_t i=0; i<unLength; i++)
         {
-            m_pSercom->USART.DATA.reg = *pData++;
-            while (m_pSercom->USART.INTFLAG.bit.TXC);
-            m_pSercom->USART.INTFLAG.bit.TXC = 1;       /* Clear flag */
+            Send(pData[i]);
         }
     }
     
@@ -175,7 +171,6 @@ namespace Core::Drivers
         m_pSercom->I2CM.CTRLB.bit.CMD = I2C_CMD_Stop;
     }
 
-    
     uint8_t I2C::Read()
     {
         /* Send Address */
@@ -209,7 +204,6 @@ namespace Core::Drivers
         m_pSercom->I2CM.CTRLB.bit.CMD = I2C_CMD_Stop;
     }
 
-    
     void I2C::Read(uint8_t* aData, uint16_t unLength)
     {
         /* Send Address */
