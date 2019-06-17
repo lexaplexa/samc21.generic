@@ -2,7 +2,7 @@
  * sercom.h
  *
  * Created: 23.9.2015 17:16:21
- * Revised: 30.4.2019
+ * Revised: 17.6.2019
  * Author: uidm2956
  * BOARD: 
  * ABOUT:
@@ -104,7 +104,12 @@ namespace Core
                  * 
                  * \return void
                  */
-                void Send(uint8_t unByte) {m_pSercom->USART.DATA.reg = unByte;}
+                void Send(uint8_t unByte) 
+                {
+                    m_pSercom->USART.DATA.reg = unByte;
+                    while (!m_pSercom->USART.INTFLAG.bit.TXC);
+                    m_pSercom->USART.INTFLAG.bit.TXC = 1;       /* Clear flag */
+                }
                 
                 /**
                  * \brief   Send string
