@@ -2,7 +2,7 @@
 * multitask.cpp
 *
 * Created: 31.3.2016 15:15:18
-* Revised: 4.6.2019
+* Revised: 14.6.2019
 * Author: uidm2956
 * BOARD:
 * ABOUT:
@@ -33,6 +33,9 @@ namespace Core::Multitask
     
     inline void MTASK::TickElapsed()
     {
+        /* Make sure that this function is processed only in SysTick handler */
+        if (__get_IPSR() != SysTick_IRQn+16) {return;}
+
         /* Increment system time */
         m_unSysTime++;
     
