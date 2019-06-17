@@ -2,7 +2,7 @@
  * can.cpp
  *
  * Created: 4.1.2018 10:05:10
- * Revised: 4.4.2019
+ * Revised: 14.6.2019
  * Author: uidm2956
  * BOARD: 
  * ABOUT:
@@ -23,11 +23,11 @@ namespace Core::Drivers
         else if (m_pCan == CAN1)    {GCLK->PCHCTRL[CAN1_GCLK_ID].reg = unGeneratorNum|GCLK_PCHCTRL_CHEN; MCLK->AHBMASK.bit.CAN1_ = true;}
     }
     
-    void CAN::Init(uint8_t unTxFifoSize, uint8_t unRxFifo0Size, uint8_t unRxFifo1Size, uint8_t unRxStdFilterSize, uint8_t unRxExtFilterSize, CAN_DATA_FIELD_SIZE_enum eDataFieldSize)
+    void CAN::Init(uint8_t unTxFifoSize, uint8_t unRxFifo0Size, uint8_t unRxFifo1Size, uint8_t unRxStdFilterSize, uint8_t unRxExtFilterSize)
     {
         /* Initialization */
         can_init_state();
-        
+
         /* TX FIFO initialization */
         if (m_psTxFifo != nullptr) {delete m_psTxFifo;}
         m_psTxFifo = nullptr;
@@ -35,8 +35,8 @@ namespace Core::Drivers
         if (unTxFifoSize > 0 && unTxFifoSize <= TX_FIFO_MAX_SIZE)
         {
             m_psTxFifo = new CAN_TX_FIFO_ELEMENT_struct[unTxFifoSize];
-            can_tx_buffer_config(m_psTxFifo, unTxFifoSize);
-            for (uint16_t i=0; i<sizeof(CAN_TX_FIFO_ELEMENT_struct)*unTxFifoSize; i++) {*((uint8_t*)m_psTxFifo+i) = 0x00;}
+            m_pCan->TXBC.reg = CAN_TXBC_TBSA((uint32_t)m_psTxFifo)|CAN_TXBC_TFQS(unTxFifoSize);
+            for (uint16_t i=0; i<(sizeof(CAN_TX_FIFO_ELEMENT_struct)*unTxFifoSize/4); i++) {*((uint32_t*)m_psTxFifo+i) = 0x00000000;}
         }
         
         /* RX FIFO0 initialization */
@@ -46,8 +46,8 @@ namespace Core::Drivers
         if (unRxFifo0Size > 0 && unRxFifo0Size <= RX_FIFO0_MAX_SIZE)
         {
             m_psRxFifo0 = new CAN_RX_FIFO_ELEMENT_struct[unRxFifo0Size];
-            can_rx_fifo0_config(m_psRxFifo0, unRxFifo0Size);
-            for (uint16_t i=0; i<sizeof(CAN_RX_FIFO_ELEMENT_struct)*unRxFifo0Size; i++) {*((uint8_t*)m_psRxFifo0+i) = 0x00;}
+            m_pCan->RXF0C.reg = CAN_RXF0C_F0SA((uint32_t)m_psRxFifo0)|CAN_RXF0C_F0S(unRxFifo0Size);
+            for (uint16_t i=0; i<(sizeof(CAN_RX_FIFO_ELEMENT_struct)*unRxFifo0Size/4); i++) {*((uint32_t*)m_psRxFifo0+i) = 0x00000000;}
         }
         
         /* RX FIFO1 initialization */
@@ -57,8 +57,8 @@ namespace Core::Drivers
         if (unRxFifo1Size > 0 && unRxFifo1Size <= RX_FIFO1_MAX_SIZE)
         {
             m_psRxFifo1 = new CAN_RX_FIFO_ELEMENT_struct[unRxFifo1Size];
-            can_rx_fifo1_config(m_psRxFifo1, unRxFifo1Size);
-            for (uint16_t i=0; i<sizeof(CAN_RX_FIFO_ELEMENT_struct)*unRxFifo1Size; i++) {*((uint8_t*)m_psRxFifo1+i) = 0x00;}
+            m_pCan->RXF1C.reg = CAN_RXF1C_F1SA((uint32_t)m_psRxFifo1)|CAN_RXF1C_F1S(unRxFifo1Size);
+            for (uint16_t i=0; i<(sizeof(CAN_RX_FIFO_ELEMENT_struct)*unRxFifo1Size/4); i++) {*((uint32_t*)m_psRxFifo1+i) = 0x00000000;}
         }
         
         /* RX standard ID filter */
@@ -68,7 +68,7 @@ namespace Core::Drivers
         if (unRxStdFilterSize > 0 && unRxStdFilterSize <= RX_STD_ID_FILTER_MAX_SIZE)
         {
             m_psRxStdFilter = new CAN_RX_STD_ID_FILTER_ELEMENT_struct[unRxStdFilterSize];
-            can_rx_filter_std_config(m_psRxStdFilter, unRxStdFilterSize);
+            m_pCan->SIDFC.reg = CAN_SIDFC_FLSSA((uint32_t)m_psRxStdFilter)|CAN_SIDFC_LSS(unRxStdFilterSize);
             for (uint16_t i=0; i<sizeof(CAN_RX_STD_ID_FILTER_ELEMENT_struct)*unRxStdFilterSize; i++) {*((uint8_t*)m_psRxStdFilter+i) = 0x00;}
         }
         
@@ -79,15 +79,21 @@ namespace Core::Drivers
         if (unRxExtFilterSize > 0 && unRxExtFilterSize <= RX_STD_ID_FILTER_MAX_SIZE)
         {
             m_psRxExtFilter = new CAN_RX_EXT_ID_FILTER_ELEMENT_struct[unRxExtFilterSize];
-            can_rx_filter_ext_config(m_psRxExtFilter, unRxExtFilterSize);
+            m_pCan->XIDFC.reg = CAN_XIDFC_FLESA((uint32_t)m_psRxExtFilter)|CAN_XIDFC_LSE(unRxExtFilterSize);
             for (uint16_t i=0; i<sizeof(CAN_RX_STD_ID_FILTER_ELEMENT_struct)*unRxExtFilterSize; i++) {*((uint8_t*)m_psRxExtFilter+i) = 0x00;}
         }
         
-        /* Data field size (CAN FD not implemented yet) */
-        m_pCan->TXESC.bit.TBDS = CAN_DATA_FIELD_SIZE_8;
-        m_pCan->RXESC.bit.F0DS = CAN_DATA_FIELD_SIZE_8;
-        m_pCan->RXESC.bit.F1DS = CAN_DATA_FIELD_SIZE_8;
-        
+        /* Set Data field size for FIFO's */
+        m_pCan->TXESC.bit.TBDS = CAN_DATA_FIELD_Val;
+        m_pCan->RXESC.bit.F0DS = CAN_DATA_FIELD_Val;
+        m_pCan->RXESC.bit.F1DS = CAN_DATA_FIELD_Val;
+
+        /* CAN FD enable */
+        m_pCan->CCCR.bit.FDOE = true;
+
+        /* Disable bit rate switch. Is enabled in function SetBaudFd() */
+        m_pCan->CCCR.bit.BRSE = 0;
+
         /* Normal state */
         can_normal_state();
     }
@@ -95,142 +101,165 @@ namespace Core::Drivers
     void CAN::SetBaud(uint8_t unBaudPrescaler, uint8_t unTimeSegment1, uint8_t unTimeSegment2)
     {
         can_init_state();
-        can_bit_timing(unBaudPrescaler, unTimeSegment1, unTimeSegment2);
+        m_pCan->NBTP.reg = CAN_NBTP_NBRP(unBaudPrescaler)|CAN_NBTP_NTSEG1(unTimeSegment1)|CAN_NBTP_NTSEG2(unTimeSegment2)|CAN_NBTP_NSJW(3);
+        can_normal_state();
+    }
+
+    void CAN::SetBaudFd(uint8_t unBaudPrescaler, uint8_t unTimeSegment1, uint8_t unTimeSegment2)
+    {
+        can_init_state();
+        m_pCan->DBTP.reg = CAN_DBTP_DBRP(unBaudPrescaler)|CAN_DBTP_DTSEG1(unTimeSegment1)|CAN_DBTP_DTSEG2(unTimeSegment2)|CAN_DBTP_DSJW(3);
+        m_pCan->CCCR.bit.BRSE = 1;
         can_normal_state();
     }
     
-    CAN_RET_CODE_enum CAN::eAddStdFilter(uint16_t unCanID)
+    Core::Drivers::CAN_RET_CODE_enum CAN::eAddFilter(uint32_t unCanID)
     {
-        if (m_psRxStdFilter == nullptr) {return CAN_RET_CODE_FIFO_UNDEFINED;}
-        if (unCanID >= 0x800)           {return CAN_RET_CODE_OUT_OF_RANGE;}
-        uint8_t unRxStdFilterSize = m_pCan->SIDFC.bit.LSS;
-        for (uint8_t i=0; i<unRxStdFilterSize; i++)
+        /* Extended ID */
+        if (unCanID >= 0x800)
         {
-            if (m_psRxStdFilter[i].SFEC == 0)          /* Filter element is disabled */
+            if (m_psRxExtFilter == nullptr) {return CAN_RET_CODE_FIFO_UNDEFINED;}
+            uint8_t unRxExtFilterSize = m_pCan->XIDFC.bit.LSE;
+            for (uint8_t i=0; i<unRxExtFilterSize; i++)
             {
-                m_psRxStdFilter[i].SFT = 1;            /* DUAL */
-                m_psRxStdFilter[i].SFEC = 2;           /* Store to FIFO1 if match */
-                m_psRxStdFilter[i].SFID1 = unCanID;
-                m_psRxStdFilter[i].SFID2 = unCanID;
-                return CAN_RET_CODE_OK;
+                if (m_psRxExtFilter[i].EFEC == 0)          /* Filter element is disabled */
+                {
+                    m_psRxExtFilter[i].EFT = 1;            /* DUAL */
+                    m_psRxExtFilter[i].EFEC = 2;           /* Store to FIFO1 if match */
+                    m_psRxExtFilter[i].EFID1 = unCanID;
+                    m_psRxExtFilter[i].EFID2 = unCanID;
+                    return CAN_RET_CODE_OK;
+                }
             }
+            return CAN_RET_CODE_BUFFER_FULL;
         }
-        return CAN_RET_CODE_BUFFER_FULL;
-    }
-    
-    CAN_RET_CODE_enum CAN::eAddExtFilter(uint32_t unCanID)
-    {
-        if (m_psRxExtFilter == nullptr) {return CAN_RET_CODE_FIFO_UNDEFINED;}
-        if (unCanID < 0x800)            {return CAN_RET_CODE_OUT_OF_RANGE;}
-        uint8_t unRxExtFilterSize = m_pCan->XIDFC.bit.LSE;
-        for (uint8_t i=0; i<unRxExtFilterSize; i++)
-        {
-            if (m_psRxExtFilter[i].EFEC == 0)          /* Filter element is disabled */
-            {
-                m_psRxExtFilter[i].EFT = 1;            /* DUAL */
-                m_psRxExtFilter[i].EFEC = 2;           /* Store to FIFO1 if match */
-                m_psRxExtFilter[i].EFID1 = unCanID;
-                m_psRxExtFilter[i].EFID2 = unCanID;
-                return CAN_RET_CODE_OK;
-            }
-        }
-        return CAN_RET_CODE_BUFFER_FULL;
-    }
-    
-    void CAN::DisableStdFilters()
-    {
-        if (m_psRxStdFilter == nullptr) {return;}
-        uint8_t unRxStdFilterSize = m_pCan->SIDFC.bit.LSS;
-        for (uint8_t i=0; i<unRxStdFilterSize; i++) {m_psRxStdFilter[i].SFEC = 0;}
-    }
-    
-    void CAN::DisableExtFilters()
-    {
-        if (m_psRxExtFilter == nullptr) {return;}
-        uint8_t unRxExtFilterSize = m_pCan->XIDFC.bit.LSE;
-        for (uint8_t i=0; i<unRxExtFilterSize; i++) {m_psRxExtFilter[i].EFEC = 0;}
-    }
-    
-    CAN_RET_CODE_enum CAN::eSendMsg(CAN_MSG_struct *psCanMsg)
-    {
-        if (m_psTxFifo == nullptr)  {return CAN_RET_CODE_FIFO_UNDEFINED;}
-        if (can_tx_fifo_full())     {return CAN_RET_CODE_BUFFER_MSG_LOST;}
-        
-        uint8_t unLength;
-        if (psCanMsg->unDLC <= 8)       {unLength = psCanMsg->unDLC;}
-        else if (psCanMsg->unDLC == 9)  {unLength = 12;}
-        else if (psCanMsg->unDLC == 10) {unLength = 16;}
-        else if (psCanMsg->unDLC == 11) {unLength = 20;}
-        else if (psCanMsg->unDLC == 12) {unLength = 24;}
-        else if (psCanMsg->unDLC == 13) {unLength = 32;}
-        else if (psCanMsg->unDLC == 14) {unLength = 48;}
-        else if (psCanMsg->unDLC == 15) {unLength = 64;}
-        
-        if (psCanMsg->unID >= 0x800)
-        {
-            /* Extended ID */
-            m_psTxFifo[m_pCan->TXFQS.bit.TFQPI].ID = psCanMsg->unID;
-            m_psTxFifo[m_pCan->TXFQS.bit.TFQPI].XTD = true;
-        }
+        /* Standard ID */
         else
         {
-            /* Standard ID */
-            m_psTxFifo[m_pCan->TXFQS.bit.TFQPI].ID = psCanMsg->unID<<18;
-            m_psTxFifo[m_pCan->TXFQS.bit.TFQPI].XTD = false;
+            if (m_psRxStdFilter == nullptr) {return CAN_RET_CODE_FIFO_UNDEFINED;}
+            uint8_t unRxStdFilterSize = m_pCan->SIDFC.bit.LSS;
+            for (uint8_t i=0; i<unRxStdFilterSize; i++)
+            {
+                if (m_psRxStdFilter[i].SFEC == 0)          /* Filter element is disabled */
+                {
+                    m_psRxStdFilter[i].SFT = 1;            /* DUAL */
+                    m_psRxStdFilter[i].SFEC = 2;           /* Store to FIFO1 if match */
+                    m_psRxStdFilter[i].SFID1 = unCanID;
+                    m_psRxStdFilter[i].SFID2 = unCanID;
+                    return CAN_RET_CODE_OK;
+                }
+            }
+            return CAN_RET_CODE_BUFFER_FULL;
         }
-        m_psTxFifo[m_pCan->TXFQS.bit.TFQPI].DLC = psCanMsg->unDLC;
+    }
+
+    void CAN::DisableFilters()
+    {
+        /* Standard filters */
+        if (m_psRxStdFilter != nullptr)
+        {
+            uint8_t unRxStdFilterSize = m_pCan->SIDFC.bit.LSS;
+            for (uint8_t i=0; i<unRxStdFilterSize; i++) {m_psRxStdFilter[i].SFEC = 0;}
+        }        
+        /* Extended filters */
+        if (m_psRxExtFilter != nullptr)
+        {
+            uint8_t unRxExtFilterSize = m_pCan->XIDFC.bit.LSE;
+            for (uint8_t i=0; i<unRxExtFilterSize; i++) {m_psRxExtFilter[i].EFEC = 0;}
+        }
+    }
+
+    CAN_RET_CODE_enum CAN::eSendMsg(CAN_MSG_struct *psCanMsg)
+    {
+        uint8_t unLength;
+        CAN_TX_FIFO_ELEMENT_struct* psTxFifoElm = &m_psTxFifo[m_pCan->TXFQS.bit.TFQPI];
+
+        if (m_psTxFifo == nullptr)  {return CAN_RET_CODE_FIFO_UNDEFINED;}
+        if (m_pCan->TXFQS.bit.TFQF) {return CAN_RET_CODE_BUFFER_MSG_LOST;}
         
-        for (uint8_t i=0; i<unLength; i++) {m_psTxFifo[m_pCan->TXFQS.bit.TFQPI].aunData[i] = psCanMsg->aunData[i];}
-        can_tx_add_request(m_pCan->TXFQS.bit.TFQPI);
-        if (can_tx_fifo_full())     {return CAN_RET_CODE_BUFFER_FULL;}
+        if      (psCanMsg->eDLC <= CAN_DATA_LENGTH_CODE_8)  {unLength = psCanMsg->eDLC; psTxFifoElm->FDF = 0;}
+        else if (psCanMsg->eDLC == CAN_DATA_LENGTH_CODE_12) {unLength = 12; psTxFifoElm->FDF = 1;}
+        else if (psCanMsg->eDLC == CAN_DATA_LENGTH_CODE_16) {unLength = 16; psTxFifoElm->FDF = 1;}
+        else if (psCanMsg->eDLC == CAN_DATA_LENGTH_CODE_20) {unLength = 20; psTxFifoElm->FDF = 1;}
+        else if (psCanMsg->eDLC == CAN_DATA_LENGTH_CODE_24) {unLength = 24; psTxFifoElm->FDF = 1;}
+        else if (psCanMsg->eDLC == CAN_DATA_LENGTH_CODE_32) {unLength = 32; psTxFifoElm->FDF = 1;}
+        else if (psCanMsg->eDLC == CAN_DATA_LENGTH_CODE_48) {unLength = 48; psTxFifoElm->FDF = 1;}
+        else if (psCanMsg->eDLC == CAN_DATA_LENGTH_CODE_64) {unLength = 64; psTxFifoElm->FDF = 1;}
+
+        /* Set bit rate switch */
+        if (m_pCan->CCCR.bit.BRSE) {psTxFifoElm->BRS = 1;}
+        else {psTxFifoElm->BRS = 0;}
+        /* Extended ID */
+        if (psCanMsg->unID >= 0x800) {psTxFifoElm->ID = psCanMsg->unID; psTxFifoElm->XTD = true;}
+        /* Standard ID */
+        else {psTxFifoElm->ID = psCanMsg->unID<<18; psTxFifoElm->XTD = false;}
+        /* Copy Data length code */
+        psTxFifoElm->DLC = psCanMsg->eDLC;
+        /* Copy CAN data to FIFO element */
+        for (uint8_t i=0; i<unLength; i++) {psTxFifoElm->aunData[i] = psCanMsg->pData[i];}
+        /* Add transmit request */
+        m_pCan->TXBAR.reg = 1<<m_pCan->TXFQS.bit.TFQPI;
+
+        if (m_pCan->TXFQS.bit.TFQF) {return CAN_RET_CODE_BUFFER_FULL;}
         return CAN_RET_CODE_OK;
     }
     
     CAN_RET_CODE_enum CAN::eAddTxElm(CAN_TX_FIFO_ELEMENT_struct* psTxMsg)
     {
+        CAN_TX_FIFO_ELEMENT_struct* psTxFifoElm = &m_psTxFifo[m_pCan->TXFQS.bit.TFQPI];
+
         if (m_psTxFifo == nullptr)  {return CAN_RET_CODE_FIFO_UNDEFINED;}
-        if (can_tx_fifo_full())     {return CAN_RET_CODE_BUFFER_MSG_LOST;}
-        memcpy(&m_psTxFifo[m_pCan->TXFQS.bit.TFQPI].T0_reg, psTxMsg, sizeof(CAN_TX_FIFO_ELEMENT_struct));
-        can_tx_add_request(m_pCan->TXFQS.bit.TFQPI);
-        if (can_tx_fifo_full())     {return CAN_RET_CODE_BUFFER_FULL;}
+        if (m_pCan->TXFQS.bit.TFQF) {return CAN_RET_CODE_BUFFER_MSG_LOST;}
+        memcpy(psTxFifoElm, psTxMsg, sizeof(CAN_TX_FIFO_ELEMENT_struct));
+        /* Add transmit request */
+        m_pCan->TXBAR.reg = 1<<m_pCan->TXFQS.bit.TFQPI;
+        if (m_pCan->TXFQS.bit.TFQF) {return CAN_RET_CODE_BUFFER_FULL;}
         return CAN_RET_CODE_OK;
     }
     
     CAN_RET_CODE_enum CAN::eRxFifo0Status()
     {
         if (m_psRxFifo0 == nullptr)         {return CAN_RET_CODE_FIFO_UNDEFINED;}
-        if (can_rx_fifo0_msg_lost())        {return CAN_RET_CODE_BUFFER_MSG_LOST;}
-        if (can_rx_fifo0_full())            {return CAN_RET_CODE_BUFFER_FULL;}
-        if (can_rx_fifo0_fill_size() == 0)  {return CAN_RET_CODE_BUFFER_EMPTY;}
+        if (m_pCan->RXF0S.bit.RF0L)         {return CAN_RET_CODE_BUFFER_MSG_LOST;}
+        if (m_pCan->RXF0S.bit.F0F)          {return CAN_RET_CODE_BUFFER_FULL;}
+        if (!m_pCan->RXF0S.bit.F0FL)        {return CAN_RET_CODE_BUFFER_EMPTY;}
         return CAN_RET_CODE_BUFFER_FILLED;
     }
     
     CAN_RET_CODE_enum CAN::eRxFifo1Status()
     {
         if (m_psRxFifo1 == nullptr)         {return CAN_RET_CODE_FIFO_UNDEFINED;}
-        if (can_rx_fifo1_msg_lost())        {return CAN_RET_CODE_BUFFER_MSG_LOST;}
-        if (can_rx_fifo1_full())            {return CAN_RET_CODE_BUFFER_FULL;}
-        if (can_rx_fifo1_fill_size() == 0)  {return CAN_RET_CODE_BUFFER_EMPTY;}
+        if (m_pCan->RXF1S.bit.RF1L)         {return CAN_RET_CODE_BUFFER_MSG_LOST;}
+        if (m_pCan->RXF1S.bit.F1F)          {return CAN_RET_CODE_BUFFER_FULL;}
+        if (!m_pCan->RXF1S.bit.F1FL)        {return CAN_RET_CODE_BUFFER_EMPTY;}
         return CAN_RET_CODE_BUFFER_FILLED;
     }
     
     CAN_RET_CODE_enum CAN::eRxFifo0LastMsg(CAN_RX_FIFO_ELEMENT_struct* psRxMsg)
     {
+        CAN_RX_FIFO_ELEMENT_struct* psRxFifoElm = &m_psRxFifo0[m_pCan->RXF0S.bit.F0GI];
+
         if (m_psRxFifo0 == nullptr)         {return CAN_RET_CODE_FIFO_UNDEFINED;}
-        if (can_rx_fifo0_fill_size() == 0)  {return CAN_RET_CODE_BUFFER_EMPTY;}
-        memcpy(psRxMsg, &m_psRxFifo0[can_rx_fifo0_last_index()].R0_reg, sizeof(CAN_RX_FIFO_ELEMENT_struct));
-        can_rx_fifo0_flush_last();
-        can_int_clear_flag(CAN_IR_RF0L);
+        if (!m_pCan->RXF0S.bit.F0FL)        {return CAN_RET_CODE_BUFFER_EMPTY;}
+        memcpy(psRxMsg, psRxFifoElm, sizeof(CAN_RX_FIFO_ELEMENT_struct));
+        /* Flush last received message */
+        m_pCan->RXF0A.bit.F0AI = m_pCan->RXF0S.bit.F0GI;
+        /* Clear message lost flag */
+        m_pCan->IR.bit.RF0L = 1;
         return CAN_RET_CODE_OK;
     }
     
     CAN_RET_CODE_enum CAN::eRxFifo1LastMsg(CAN_RX_FIFO_ELEMENT_struct* psRxMsg)
     {
+        CAN_RX_FIFO_ELEMENT_struct* psRxFifoElm = &m_psRxFifo1[m_pCan->RXF1S.bit.F1GI];
+
         if (m_psRxFifo1 == nullptr)         {return CAN_RET_CODE_FIFO_UNDEFINED;}
-        if (can_rx_fifo1_fill_size() == 0)  {return CAN_RET_CODE_BUFFER_EMPTY;}
-        memcpy(psRxMsg, &m_psRxFifo1[can_rx_fifo1_last_index()].R0_reg, sizeof(CAN_RX_FIFO_ELEMENT_struct));
-        can_rx_fifo1_flush_last();
-        can_int_clear_flag(CAN_IR_RF1L);
+        if (!m_pCan->RXF1S.bit.F1FL)        {return CAN_RET_CODE_BUFFER_EMPTY;}
+        memcpy(psRxMsg, psRxFifoElm, sizeof(CAN_RX_FIFO_ELEMENT_struct));
+        /* Flush last received message */
+        m_pCan->RXF1A.bit.F1AI = m_pCan->RXF1S.bit.F1GI;
+        /* Clear message lost flag */
+        m_pCan->IR.bit.RF1L = 1;
         return CAN_RET_CODE_OK;
     }
 }
