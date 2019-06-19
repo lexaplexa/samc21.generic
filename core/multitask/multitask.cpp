@@ -2,7 +2,7 @@
 * multitask.cpp
 *
 * Created: 31.3.2016 15:15:18
-* Revised: 14.6.2019
+* Revised: 19.6.2019
 * Author: uidm2956
 * BOARD:
 * ABOUT:
@@ -24,13 +24,15 @@ namespace Core::Multitask
     TASK_struct* MTASK::m_psCurrentTask = nullptr;
     FuncPtr_t MTASK::peventBeforeDeepSleep = nullptr;
     FuncPtr_t MTASK::peventAfterWakeUp = nullptr;
-    
+
+
     inline void MTASK::Init(uint32_t unCpuFreq, uint32_t unTicksPerSecond)
     {
         /* Set tick counter */
         SysTick_Config(unCpuFreq/unTicksPerSecond);
     }
-    
+
+
     inline void MTASK::TickElapsed()
     {
         /* Make sure that this function is processed only in SysTick handler */
@@ -55,7 +57,8 @@ namespace Core::Multitask
             if (pTask->bSuspend) {pTask->nTimeMatch++;}
         }
     }
-    
+
+
     inline void MTASK::Schedule()
     {
         if (m_bSchedulerRunning) {return;}
@@ -66,13 +69,11 @@ namespace Core::Multitask
         {
             /* Clear to default values */
             m_unHighestPrio = 0;
-            m_unActiveTasks = 0;
             m_psCurrentTask = nullptr;
             
             /* Find task with highest priority */
             for (TASK_struct* pTask = m_psLastTask; pTask != nullptr; pTask = pTask->psParent)
             {
-                if (pTask->bSuspend == false) {m_unActiveTasks++;}
                 if (m_unSysTime >= pTask->nTimeMatch && pTask->unPriority >= m_unHighestPrio)
                 {
                     m_psCurrentTask = pTask;
@@ -91,7 +92,7 @@ namespace Core::Multitask
             }
             /* Controller can be put into deep sleep if no tasks are active.
              * Multi task counter is not running. There are limited wake-up sources. */
-            else if (m_bDeepSleepEnabled && !m_unActiveTasks)
+            else if (m_bDeepSleepEnabled && unGetActiveTasksNum() == 0)
             {
                 /* Run event before going to deep sleep */
                 if (peventBeforeDeepSleep != nullptr) {peventBeforeDeepSleep();}
@@ -115,16 +116,16 @@ namespace Core::Multitask
             }
         }
     }
-    
-    
+
+
     TASK_struct* MTASK::CreateTask()
     {
         TASK_struct* psNewTask = new TASK_struct;
         psNewTask->psParent = m_psLastTask;
         m_psLastTask = psNewTask;
     }
-    
-    
+
+
     TASK_struct* MTASK::FindTask(FuncPtr_t pTaskFunc)
     {
         for (TASK_struct* pTask = m_psLastTask; pTask != nullptr; pTask = pTask->psParent)
@@ -133,8 +134,8 @@ namespace Core::Multitask
         }
         return nullptr;
     }
-    
-    
+
+
     void MTASK::DeleteTask(TASK_struct* pTask)
     {
         if (m_psLastTask == pTask)
@@ -153,8 +154,8 @@ namespace Core::Multitask
             }
         }
     }
-    
-    
+
+
     void MTASK::Run(FuncPtr_t taskFunc)
     {
         TASK_struct* pTask = FindTask(taskFunc);
@@ -166,8 +167,8 @@ namespace Core::Multitask
         pTask->bSuspend = 0;
         pTask->bRepeat = 0;;
     }
-    
-    
+
+
     void MTASK::Run(FuncPtr_t taskFunc, uint8_t unPriority)
     {
         TASK_struct* pTask = FindTask(taskFunc);
@@ -179,8 +180,8 @@ namespace Core::Multitask
         pTask->bSuspend = 0;
         pTask->bRepeat = 0;
     }
-    
-    
+
+
     void MTASK::Delay(FuncPtr_t taskFunc, uint16_t unTimeout)
     {
         TASK_struct* pTask = FindTask(taskFunc);
@@ -192,8 +193,8 @@ namespace Core::Multitask
         pTask->bSuspend = 0;
         pTask->bRepeat = 0;
     }
-    
-    
+
+
     void MTASK::Delay(FuncPtr_t taskFunc, uint16_t unTimeout, uint8_t unPriority)
     {
         TASK_struct* pTask = FindTask(taskFunc);
@@ -205,8 +206,8 @@ namespace Core::Multitask
         pTask->bSuspend = 0;
         pTask->bRepeat = 0;
     }
-    
-    
+
+
     void MTASK::Repeat(FuncPtr_t taskFunc, uint16_t unTimeout)
     {
         TASK_struct* pTask = FindTask(taskFunc);
@@ -218,8 +219,8 @@ namespace Core::Multitask
         pTask->bSuspend = 0;
         pTask->bRepeat = 1;
     }
-    
-    
+
+
     void MTASK::Repeat(FuncPtr_t taskFunc, uint16_t unTimeout, uint8_t unPriority)
     {
         TASK_struct* pTask = FindTask(taskFunc);
@@ -286,8 +287,19 @@ namespace Core::Multitask
         TASK_struct* pTask = FindTask(taskFunc);
         if (pTask != nullptr) {pTask->unPriority = unPriority;}
     }
-    
-    
+
+
+    uint8_t MTASK::unGetActiveTasksNum()
+    {
+        uint8_t num = 0;
+        for (TASK_struct* pTask = m_psLastTask; pTask != nullptr; pTask = pTask->psParent)
+        {
+            if (pTask->bSuspend == false) {num++;}
+        }
+        return num;
+    }
+
+
     void MTASK::SetEvent(TASK_EVENT_TYPE_enum eEventType, FuncPtr_t eventFunc)
     {
         switch(eEventType)
@@ -297,7 +309,7 @@ namespace Core::Multitask
         }
     }
 
-    
+
     void MTASK::Sleep()
     {
         #ifdef _SAMC21_
@@ -309,6 +321,7 @@ namespace Core::Multitask
         #endif
         __WFI();
     }
+
 
     void MTASK::Sleep(uint16_t unTimeout)
     {
@@ -392,7 +405,7 @@ void Core::Multitask::BootJumpApp()
 /* MAIN PROGRAM                                                         */
 /************************************************************************/
 int main(void)
-{    
+{
     /* Multitask initialization */
     Core::Multitask::MTASK::Init(CPU_FREQ, TICKS_PER_SECOND);
     Core::Multitask::MTASK::Delay(Core::Multitask::taskStartUpCore,TASK_TOUT_MS(STARTUP_TIMEOUT));
