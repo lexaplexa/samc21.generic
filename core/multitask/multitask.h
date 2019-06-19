@@ -114,7 +114,6 @@ namespace Core
         {
             private:
                 static uint32_t m_unSysTime;                /* System time in ticks */
-                static uint8_t m_unActiveTasks;             /* Number of active tasks */
                 static uint8_t m_unHighestPrio;             /* Highest priority in a schedule loop */
                 static bool m_bDeepSleepEnabled;            /* Deep sleep activation */
                 static bool m_bSchedulerRunning;            /* Scheduler is running status */
