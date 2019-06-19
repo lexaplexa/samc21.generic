@@ -2,7 +2,7 @@
  * multitask.h
  *
  * Created: 31.3.2016 15:16:18
- * Revised: 4.6.2019
+ * Revised: 19.6.2019
  * Author: uidm2956
  * BOARD: 
  * ABOUT:
@@ -304,6 +304,14 @@ namespace Core
                  * \return uint32_t     - system time
                  */
                 static uint32_t unGetSysTime() {return m_unSysTime;}
+
+                /**
+                 * \brief   Get number of active tasks
+                 * 
+                 * 
+                 * \return uint8_t      - number of active tasks
+                 */
+                static uint8_t unGetActiveTasksNum();
 
                 /**
                  * \brief   Assign function to a event type
