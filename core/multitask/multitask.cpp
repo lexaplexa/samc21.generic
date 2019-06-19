@@ -16,7 +16,6 @@
 namespace Core::Multitask
 {
     uint32_t MTASK::m_unSysTime = 0;
-    uint8_t MTASK::m_unActiveTasks = 0;
     uint8_t MTASK::m_unHighestPrio = 0;
     bool MTASK::m_bDeepSleepEnabled = false;
     bool MTASK::m_bSchedulerRunning = false;
