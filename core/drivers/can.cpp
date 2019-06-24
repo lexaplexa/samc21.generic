@@ -2,7 +2,7 @@
  * can.cpp
  *
  * Created: 4.1.2018 10:05:10
- * Revised: 14.6.2019
+ * Revised: 24.6.2019
  * Author: uidm2956
  * BOARD: 
  * ABOUT:
@@ -25,12 +25,17 @@ namespace Core::Drivers
     
     void CAN::Init(uint8_t unTxFifoSize, uint8_t unRxFifo0Size, uint8_t unRxFifo1Size, uint8_t unRxStdFilterSize, uint8_t unRxExtFilterSize)
     {
+        /* Delete old pointers */
+        if (m_psTxFifo != nullptr)      {delete m_psTxFifo; m_psTxFifo = nullptr;}
+        if (m_psRxFifo0 != nullptr)     {delete m_psRxFifo0; m_psRxFifo0 = nullptr;}
+        if (m_psRxFifo1 != nullptr)     {delete m_psRxFifo1; m_psRxFifo1 = nullptr;}
+        if (m_psRxStdFilter != nullptr) {delete m_psRxStdFilter; m_psRxStdFilter = nullptr;}
+        if (m_psRxExtFilter != nullptr) {delete m_psRxExtFilter; m_psRxExtFilter = nullptr;}
+        
         /* Initialization */
         can_init_state();
 
         /* TX FIFO initialization */
-        if (m_psTxFifo != nullptr) {delete m_psTxFifo;}
-        m_psTxFifo = nullptr;
         m_pCan->TXBC.reg = 0;
         if (unTxFifoSize > 0 && unTxFifoSize <= TX_FIFO_MAX_SIZE)
         {
@@ -40,8 +45,6 @@ namespace Core::Drivers
         }
         
         /* RX FIFO0 initialization */
-        if (m_psRxFifo0 != nullptr) {delete m_psRxFifo0;}
-        m_psRxFifo0 = nullptr;
         m_pCan->RXF0C.reg = 0;
         if (unRxFifo0Size > 0 && unRxFifo0Size <= RX_FIFO0_MAX_SIZE)
         {
@@ -51,8 +54,6 @@ namespace Core::Drivers
         }
         
         /* RX FIFO1 initialization */
-        if (m_psRxFifo1 != nullptr) {delete m_psRxFifo1;}
-        m_psRxFifo1 = nullptr;
         m_pCan->RXF1C.reg = 0;
         if (unRxFifo1Size > 0 && unRxFifo1Size <= RX_FIFO1_MAX_SIZE)
         {
@@ -62,8 +63,6 @@ namespace Core::Drivers
         }
         
         /* RX standard ID filter */
-        if (m_psRxStdFilter != nullptr) {delete m_psRxStdFilter;}
-        m_psRxStdFilter = nullptr;
         m_pCan->SIDFC.reg = 0;
         if (unRxStdFilterSize > 0 && unRxStdFilterSize <= RX_STD_ID_FILTER_MAX_SIZE)
         {
@@ -73,8 +72,6 @@ namespace Core::Drivers
         }
         
         /* RX extended ID filter */
-        if (m_psRxExtFilter != nullptr) {delete m_psRxExtFilter;}
-        m_psRxExtFilter = nullptr;
         m_pCan->XIDFC.reg = 0;
         if (unRxExtFilterSize > 0 && unRxExtFilterSize <= RX_STD_ID_FILTER_MAX_SIZE)
         {
@@ -91,8 +88,8 @@ namespace Core::Drivers
         /* CAN FD enable */
         m_pCan->CCCR.bit.FDOE = true;
 
-        /* Disable bit rate switch. Is enabled in function SetBaudFd() */
-        m_pCan->CCCR.bit.BRSE = 0;
+        /* Disable bit rate switch. Can be enabled in function SetBaudFd() */
+        m_pCan->CCCR.bit.BRSE = false;
 
         /* Normal state */
         can_normal_state();
@@ -109,7 +106,7 @@ namespace Core::Drivers
     {
         can_init_state();
         m_pCan->DBTP.reg = CAN_DBTP_DBRP(unBaudPrescaler)|CAN_DBTP_DTSEG1(unTimeSegment1)|CAN_DBTP_DTSEG2(unTimeSegment2)|CAN_DBTP_DSJW(3);
-        m_pCan->CCCR.bit.BRSE = 1;
+        m_pCan->CCCR.bit.BRSE = true;
         can_normal_state();
     }
     
@@ -187,8 +184,8 @@ namespace Core::Drivers
         else if (psCanMsg->eDLC == CAN_DATA_LENGTH_CODE_64) {unLength = 64; psTxFifoElm->FDF = 1;}
 
         /* Set bit rate switch */
-        if (m_pCan->CCCR.bit.BRSE) {psTxFifoElm->BRS = 1;}
-        else {psTxFifoElm->BRS = 0;}
+        if (m_pCan->CCCR.bit.BRSE) {psTxFifoElm->BRS = true;}
+        else {psTxFifoElm->BRS = false;}
         /* Extended ID */
         if (psCanMsg->unID >= 0x800) {psTxFifoElm->ID = psCanMsg->unID; psTxFifoElm->XTD = true;}
         /* Standard ID */
