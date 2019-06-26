@@ -2,7 +2,7 @@
  * sercom.cpp
  *
  * Created: 23.9.2015 17:18:53
- * Revised: 17.6.2019
+ * Revised: 25.6.2019
  * Author: uidm2956
  * BOARD: 
  * ABOUT:
@@ -68,7 +68,7 @@ namespace Core::Drivers
         m_pSercom->USART.BAUD.reg = 65536 - (65536*16*(unBaud/1000)/(unFgen/1000));
         m_pSercom->USART.CTRLB.bit.RXEN = true;
         m_pSercom->USART.CTRLB.bit.TXEN = true;
-        m_pSercom->USART.INTENSET.reg = SERCOM_USART_INTFLAG_RXC;
+        m_pSercom->USART.INTENSET.reg = SERCOM_USART_INTENSET_RXC;
         
         m_pSercom->USART.CTRLA.bit.ENABLE = true;
         while (m_pSercom->USART.SYNCBUSY.bit.ENABLE);
@@ -221,5 +221,42 @@ namespace Core::Drivers
 
         /* Stop communication */
         m_pSercom->I2CM.CTRLB.bit.CMD = I2C_CMD_Stop;
+    }
+
+    /************************************************************************/
+    /* LIN                                                                  */
+    /************************************************************************/
+    void LIN::Init(uint8_t unPadIn, uint8_t unPadOut, uint32_t unFgen, uint32_t unBaud)
+    {
+        m_pSercom->USART.CTRLA.bit.SWRST = true;
+        while (m_pSercom->USART.SYNCBUSY.bit.SWRST);
+        
+        m_pSercom->USART.CTRLA.bit.MODE = 1;
+        m_pSercom->USART.CTRLA.bit.FORM = 2;            /* LIN Master */
+        m_pSercom->USART.CTRLC.bit.HDRDLY = 1;
+
+        m_pSercom->USART.CTRLA.bit.DORD = 1;
+        m_pSercom->USART.CTRLA.bit.RXPO = unPadIn;
+        m_pSercom->USART.CTRLA.bit.TXPO = unPadOut;
+        m_pSercom->USART.CTRLB.bit.RXEN = true;
+        m_pSercom->USART.CTRLB.bit.TXEN = true;
+        m_pSercom->USART.BAUD.reg = 65536 - (65536*16*(unBaud/1000)/(unFgen/1000));
+        m_pSercom->USART.INTENSET.reg = SERCOM_USART_INTENSET_RXC;
+        
+        m_pSercom->USART.CTRLA.bit.ENABLE = true;
+        while (m_pSercom->USART.SYNCBUSY.bit.ENABLE);
+    }
+
+    void LIN::Send(uint8_t* pData, uint8_t unLength)
+    {
+        m_pSercom->USART.CTRLB.bit.RXEN = false;
+        m_pSercom->USART.CTRLB.bit.LINCMD = 2;          /* HW LIN header */
+        for (uint8_t i=0; i<unLength; i++)
+        {
+            m_pSercom->USART.DATA.reg = pData[i];
+            while (!m_pSercom->USART.INTFLAG.bit.TXC);
+            m_pSercom->USART.INTFLAG.bit.TXC = 1;       /* Clear flag */
+        }
+        m_pSercom->USART.CTRLB.bit.RXEN = true;
     }
 }
