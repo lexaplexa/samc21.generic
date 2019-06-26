@@ -2,7 +2,7 @@
  * sercom.h
  *
  * Created: 23.9.2015 17:16:21
- * Revised: 17.6.2019
+ * Revised: 25.6.2019
  * Author: uidm2956
  * BOARD: 
  * ABOUT:
@@ -367,9 +367,41 @@ namespace Core
                  */
                 void Init(uint8_t unPadIn, uint8_t unPadOut, uint32_t unFgen, uint32_t unBaud);
                 
-                void Send(uint8_t unByte) {};
+                /**
+                 * \brief   Send LIN header with slave Identifier
+                 * 
+                 * \param unByte            - slave ID
+                 * 
+                 * \return void
+                 */
+                void Send(uint8_t unByte) 
+                {
+                    m_pSercom->USART.CTRLB.bit.RXEN = false;
+                    m_pSercom->USART.CTRLB.bit.LINCMD = 2;      /* HW LIN header */
+                    m_pSercom->USART.DATA.reg = unByte;         /* Slave Identifier */
+                    while (!m_pSercom->USART.INTFLAG.bit.TXC);
+                    m_pSercom->USART.INTFLAG.bit.TXC = 1;       /* Clear flag */
+                    m_pSercom->USART.CTRLB.bit.RXEN = true;
+                };
                 
-                uint8_t Read() {};
+                /**
+                 * \brief   Read byte from DATA register
+                 * 
+                 * 
+                 * \return uint8_t      - byte from register DATA
+                 */
+                uint8_t Read() {return m_pSercom->USART.DATA.reg;};
+
+
+                /**
+                 * \brief   Send LIN header with slave Identifier and data
+                 * 
+                 * \param pData             - pointer data (first byte is slave ID)
+                 * \param unLength          - data length
+                 * 
+                 * \return void
+                 */
+                void Send(uint8_t* pData, uint8_t unLength);
         };
     }
 }
