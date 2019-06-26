@@ -2,7 +2,7 @@
  * can.cpp
  *
  * Created: 4.1.2018 10:05:10
- * Revised: 24.6.2019
+ * Revised: 26.6.2019
  * Author: uidm2956
  * BOARD: 
  * ABOUT:
@@ -99,6 +99,7 @@ namespace Core::Drivers
     {
         can_init_state();
         m_pCan->NBTP.reg = CAN_NBTP_NBRP(unBaudPrescaler)|CAN_NBTP_NTSEG1(unTimeSegment1)|CAN_NBTP_NTSEG2(unTimeSegment2)|CAN_NBTP_NSJW(3);
+        m_pCan->CCCR.bit.BRSE = false;
         can_normal_state();
     }
 
