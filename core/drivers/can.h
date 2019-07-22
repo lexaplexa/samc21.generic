@@ -2,7 +2,7 @@
  * can.h
  *
  * Created: 9.12.2015 11:31:14
- * Revised: 17.6.2019
+ * Revised: 22.7.2019
  * Author: uidm2956
  * BOARD: 
  * ABOUT:
@@ -267,11 +267,11 @@ namespace Core
         /************************************************************************/
         /* MAX Elements size                                                    */
         /************************************************************************/
-        #define TX_FIFO_MAX_SIZE                    32
-        #define RX_FIFO0_MAX_SIZE                   64
-        #define RX_FIFO1_MAX_SIZE                   64
-        #define RX_STD_ID_FILTER_MAX_SIZE           128
-        #define RX_EXT_ID_FILTER_MAX_SIZE           64
+        #define CAN_TX_FIFO_MAX_SIZE                32
+        #define CAN_RX_FIFO0_MAX_SIZE               64
+        #define CAN_RX_FIFO1_MAX_SIZE               64
+        #define CAN_RX_STD_ID_FILTER_MAX_SIZE       128
+        #define CAN_RX_EXT_ID_FILTER_MAX_SIZE       64
 
 
         /************************************************************************/
@@ -281,7 +281,6 @@ namespace Core
         {
             private:
                 Can *m_pCan;
-                uint8_t m_unFifoElmSize;
                 CAN_TX_FIFO_ELEMENT_struct* m_psTxFifo = nullptr;
                 CAN_RX_FIFO_ELEMENT_struct* m_psRxFifo0 = nullptr;
                 CAN_RX_FIFO_ELEMENT_struct* m_psRxFifo1 = nullptr;
