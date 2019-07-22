@@ -2,7 +2,7 @@
  * can.cpp
  *
  * Created: 4.1.2018 10:05:10
- * Revised: 26.6.2019
+ * Revised: 22.7.2019
  * Author: uidm2956
  * BOARD: 
  * ABOUT:
@@ -37,7 +37,7 @@ namespace Core::Drivers
 
         /* TX FIFO initialization */
         m_pCan->TXBC.reg = 0;
-        if (unTxFifoSize > 0 && unTxFifoSize <= TX_FIFO_MAX_SIZE)
+        if (unTxFifoSize > 0 && unTxFifoSize <= CAN_TX_FIFO_MAX_SIZE)
         {
             m_psTxFifo = new CAN_TX_FIFO_ELEMENT_struct[unTxFifoSize];
             m_pCan->TXBC.reg = CAN_TXBC_TBSA((uint32_t)m_psTxFifo)|CAN_TXBC_TFQS(unTxFifoSize);
@@ -46,7 +46,7 @@ namespace Core::Drivers
         
         /* RX FIFO0 initialization */
         m_pCan->RXF0C.reg = 0;
-        if (unRxFifo0Size > 0 && unRxFifo0Size <= RX_FIFO0_MAX_SIZE)
+        if (unRxFifo0Size > 0 && unRxFifo0Size <= CAN_RX_FIFO0_MAX_SIZE)
         {
             m_psRxFifo0 = new CAN_RX_FIFO_ELEMENT_struct[unRxFifo0Size];
             m_pCan->RXF0C.reg = CAN_RXF0C_F0SA((uint32_t)m_psRxFifo0)|CAN_RXF0C_F0S(unRxFifo0Size);
@@ -55,7 +55,7 @@ namespace Core::Drivers
         
         /* RX FIFO1 initialization */
         m_pCan->RXF1C.reg = 0;
-        if (unRxFifo1Size > 0 && unRxFifo1Size <= RX_FIFO1_MAX_SIZE)
+        if (unRxFifo1Size > 0 && unRxFifo1Size <= CAN_RX_FIFO1_MAX_SIZE)
         {
             m_psRxFifo1 = new CAN_RX_FIFO_ELEMENT_struct[unRxFifo1Size];
             m_pCan->RXF1C.reg = CAN_RXF1C_F1SA((uint32_t)m_psRxFifo1)|CAN_RXF1C_F1S(unRxFifo1Size);
@@ -64,7 +64,7 @@ namespace Core::Drivers
         
         /* RX standard ID filter */
         m_pCan->SIDFC.reg = 0;
-        if (unRxStdFilterSize > 0 && unRxStdFilterSize <= RX_STD_ID_FILTER_MAX_SIZE)
+        if (unRxStdFilterSize > 0 && unRxStdFilterSize <= CAN_RX_STD_ID_FILTER_MAX_SIZE)
         {
             m_psRxStdFilter = new CAN_RX_STD_ID_FILTER_ELEMENT_struct[unRxStdFilterSize];
             m_pCan->SIDFC.reg = CAN_SIDFC_FLSSA((uint32_t)m_psRxStdFilter)|CAN_SIDFC_LSS(unRxStdFilterSize);
@@ -73,7 +73,7 @@ namespace Core::Drivers
         
         /* RX extended ID filter */
         m_pCan->XIDFC.reg = 0;
-        if (unRxExtFilterSize > 0 && unRxExtFilterSize <= RX_STD_ID_FILTER_MAX_SIZE)
+        if (unRxExtFilterSize > 0 && unRxExtFilterSize <= CAN_RX_STD_ID_FILTER_MAX_SIZE)
         {
             m_psRxExtFilter = new CAN_RX_EXT_ID_FILTER_ELEMENT_struct[unRxExtFilterSize];
             m_pCan->XIDFC.reg = CAN_XIDFC_FLESA((uint32_t)m_psRxExtFilter)|CAN_XIDFC_LSE(unRxExtFilterSize);
@@ -90,6 +90,9 @@ namespace Core::Drivers
 
         /* Disable bit rate switch. Can be enabled in function SetBaudFd() */
         m_pCan->CCCR.bit.BRSE = false;
+
+        /* Clear flags */
+        m_pCan->IR.reg = 0xFF;
 
         /* Normal state */
         can_normal_state();
